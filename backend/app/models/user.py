@@ -7,13 +7,17 @@ class UserCreate(BaseModel):
 
 class UserOut(BaseModel):
     id: int
-    username: str
+    email: str
     role: str
     display_name: str | None
     is_active: int
     created_at: str
 
 class LoginIn(BaseModel):
-    username: str
+    email: str
     password: str
 
+class UserCreate(BaseModel):
+    email: str | None = None
+    password: str = Field(min_length=6)
+    display_name: str | None = None
