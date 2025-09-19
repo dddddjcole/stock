@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+body { @apply bg-gray-50 text-slate-800; }
+
+/* 可选：在 v4 中做主题扩展
+@theme {
+  --color-brand: #2563eb;
+}
+*/
+
