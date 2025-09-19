@@ -1,4 +1,9 @@
-export const API_BASE = 'http://localhost:8000';
+import { env } from '$env/dynamic/public';
+
+const DEFAULT_API_BASE = 'http://localhost:8000';
+const configuredBase = env.PUBLIC_API_BASE?.trim();
+const normalizedBase = (configuredBase && configuredBase.length > 0 ? configuredBase : DEFAULT_API_BASE).replace(/\/$/, '');
+export const API_BASE = normalizedBase;
 
 export async function api(path: string, opts: RequestInit = {}) {
   const res = await fetch(`${API_BASE}${path}`, {

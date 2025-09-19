@@ -5,6 +5,7 @@
     "module": "esnext",
     "target": "ES2022",
     "types": ["svelte"],
+    "typeRoots": ["./src/types", "./node_modules/@types"],
     "strict": true
   }
 }
