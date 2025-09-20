@@ -10,18 +10,7 @@ def get_conn():
     return conn
 
 def init_db():
-    conn = get_conn(); c = conn.cursor()
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS users(
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT UNIQUE NOT NULL,
-      password_hash TEXT NOT NULL,
-      role TEXT NOT NULL CHECK (role IN ('owner','admin','manager','user')),
-      display_name TEXT DEFAULT '',
-      is_active INTEGER NOT NULL DEFAULT 1,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )""")
-    conn.commit(); conn.close()
+    conn = get_conn(); 
 
 def ensure_owner_admin(hash_password):
     conn = get_conn(); c = conn.cursor()
@@ -31,4 +20,3 @@ def ensure_owner_admin(hash_password):
                   ("admin", hash_password("Dong5032"), "owner", "Owner Admin"))
         conn.commit()
     conn.close()
-

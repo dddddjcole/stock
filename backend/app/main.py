@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.core.db import init_db, ensure_owner_admin
 from app.core.security import hash_password
 from app.api import auth, users
 from app.api import test as test_api  # 新增

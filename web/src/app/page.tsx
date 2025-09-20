@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { loginByEmail } from "@/lib/api";
+import { loginByEmail,registerByEmail } from "@/lib/api";
 import "./auth.css";
 
 /** ----------------- Helper: Google Icon ----------------- */
@@ -148,6 +148,21 @@ const RightPane = React.memo(function RightPane({
   );
 });
 
+function hasMessage(x: unknown): x is { message: string } {
+  return typeof x === "object" && x !== null && "message" in x && typeof (x as Record<string, unknown>).message === "string";
+}
+
+function normalizeError(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  if (hasMessage(err)) return err.message;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return "登录失败";
+  }
+}
+
 /** ----------------- 登录表单 ----------------- */
 function SignInForm({
   onSwitchToRegister,
@@ -172,15 +187,18 @@ function SignInForm({
     if (!password) return onFeedback({ text: "请输入密码", tone: "error" });
 
     try {
-      const { ok } = await loginByEmail(email, password);
+      const { ok, user } = await loginByEmail(email, password);
       if (ok) {
         onFeedback({ text: "登录成功，正在跳转到 Dashboard …", tone: "success" });
+        localStorage.setItem("xcontact:user", JSON.stringify(user));
+        
         router.push("/dashboard");
       } else {
         onFeedback({ text: "登录失败，请稍后重试", tone: "error" });
       }
-    } catch (err: any) {
-      const msg = String(err?.message || "登录失败");
+    } catch (err: unknown) {
+      const msg = normalizeError(err) || "登录失败";
+    
       if (/不存在|未注册|not\s*found|does\s*not\s*exist/i.test(msg)) {
         onFeedback({ text: "账号不存在，点击下方 Create Account 立即注册。", tone: "warning" });
       } else if (/密码|password/i.test(msg)) {
@@ -313,27 +331,58 @@ function RegisterForm({
 }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleRegister = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleRegister: React.FormEventHandler<HTMLFormElement> = async (event) => {
     event.preventDefault();
+    if (submitting) return;
+
     const formData = new FormData(event.currentTarget);
     const name = String(formData.get("name") || "").trim();
     const email = String(formData.get("email") || "").trim();
     const password = String(formData.get("password") || "");
     const confirm = String(formData.get("confirmPassword") || "");
 
+    // 最小校验
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return onFeedback({ text: "请输入有效的邮箱地址", tone: "error" });
+      onFeedback({ text: "请输入有效的邮箱地址", tone: "error" });
+      return;
     }
     if (password.length < 6) {
-      return onFeedback({ text: "密码至少 6 位", tone: "error" });
+      onFeedback({ text: "密码至少 6 位", tone: "error" });
+      return;
     }
     if (password !== confirm) {
-      return onFeedback({ text: "两次输入的密码不一致", tone: "error" });
+      onFeedback({ text: "两次输入的密码不一致", tone: "error" });
+      return;
     }
 
-    // TODO: 接后端 /api/auth/register
-    onFeedback({ text: "注册接口尚未接通，提交成功后将跳转到登录页。", tone: "warning" });
+    setSubmitting(true);
+    try {
+      // 调用后端 /api/auth/register
+      const { ok } = await registerByEmail(email, password, name);
+      if (ok) {
+        onFeedback({ text: "注册成功，请使用该邮箱登录。", tone: "success" });
+        setTimeout(() => {
+          onSwitchToSignIn(); // 1 秒后切回登录
+        }, 1000);
+      } else {
+        onFeedback({ text: "注册失败，请稍后重试。", tone: "error" });
+      }
+    } catch (err: unknown) {
+      const msg = (err as Error)?.message ?? "注册失败";
+      if (/已注册|exists|unique|409/i.test(msg)) {
+        onFeedback({ text: "该邮箱已注册，请直接登录或使用“重设密码”。", tone: "warning" });
+      } else if (/Failed to fetch|NetworkError|CORS|TypeError: fetch/i.test(msg)) {
+        onFeedback({ text: "网络或跨域异常，请检查后端 CORS 与 NEXT_PUBLIC_API_BASE。", tone: "error" });
+      } else if (/422|password|min_length/i.test(msg)) {
+        onFeedback({ text: "密码太短或格式不正确。", tone: "error" });
+      } else {
+        onFeedback({ text: msg, tone: "error" });
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleGoogle = () => {
@@ -441,9 +490,10 @@ function RegisterForm({
 
           <button
             type="submit"
-            className="animate-element animate-delay-600 w-full rounded-2xl bg-primary py-4 font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+            disabled={submitting}
+            className="animate-element animate-delay-600 w-full rounded-2xl bg-primary py-4 font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-60"
           >
-            Create Account
+            {submitting ? "Creating..." : "Create Account"}
           </button>
         </form>
 

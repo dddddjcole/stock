@@ -1,0 +1,57 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        // 1) 启动 Next 开发服务并开启 Node 调试
+        "type": "node",
+        "request": "launch",
+        "name": "Dev: Next.js (server)",
+        "cwd": "/root/xcontract/stock/web",
+        "runtimeExecutable": "npm",
+        "runtimeArgs": ["run", "dev"],
+        "env": {
+          "NODE_OPTIONS": "--inspect=9229"
+        },
+        "console": "integratedTerminal",
+        "outputCapture": "std",
+        "skipFiles": [
+          "<node_internals>/**",
+          "**/node_modules/**"
+        ],
+        "autoAttachChildProcesses": true
+      },
+      {
+        // 2) 附加到 9229（如果你单独用终端跑了 npm run dev，也能用这个 attach）
+        "type": "node",
+        "request": "attach",
+        "name": "Attach: Next.js (server @9229)",
+        "port": 9229,
+        "restart": true,
+        "skipFiles": [
+          "<node_internals>/**",
+          "**/node_modules/**"
+        ]
+      },
+      {
+        // 3) 打开 Chrome 并调试前端
+        "type": "pwa-chrome",
+        "request": "launch",
+        "name": "Open Chrome: http://localhost:3000",
+        "url": "http://localhost:3000",
+        "webRoot": "/root/xcontact/stock/web",
+        "userDataDir": true
+      }
+    ],
+    "compounds": [
+      {
+        // 一键：同时启动 Next 开发服 + 打开 Chrome
+        "name": "Debug Next (server + browser)",
+        "configurations": [
+          "Dev: Next.js (server)",
+          "Open Chrome: http://localhost:3000"
+        ],
+        "stopAll": true
+      }
+    ]
+  }
+  
